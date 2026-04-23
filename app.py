@@ -1,16 +1,21 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
+from pydantic import BaseModel
 import os
 import uuid
 
 app = FastAPI(title="Pocket TTS API")
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "default"
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
 @app.post("/tts")
-async def tts(text: str, voice: str = "default"):
+async def tts(request: TTSRequest):
     try:
         import torch
         from pocket_tts import AutoModelForTextToSpeech, AutoProcessor
@@ -19,7 +24,7 @@ async def tts(text: str, voice: str = "default"):
         processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
         model = AutoModelForTextToSpeech.from_pretrained(model_name, trust_remote_code=True)
         
-        inputs = processor(text=text, return_tensors="pt")
+        inputs = processor(text=request.text, return_tensors="pt")
         with torch.no_grad():
             audio = model.generate(**inputs)
         
